@@ -1,0 +1,36 @@
+name: Create VPS
+
+on: workflow_dispatch
+
+jobs:
+  setup-vps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ngrok
+        run: |
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+          | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+          && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+          | sudo tee /etc/apt/sources.list.d/ngrok.list \
+          && sudo apt update \
+          && sudo apt install ngrok jq
+
+      - name: Add authentication token
+        run: ngrok config add-authtoken ${{ secrets.2pBmHFhIluKSYue23dw5Uooj5k1_6pjNp7a5LoiawdYVp7Ms7 }}
+
+      - name: Add ssh key
+        run: |
+          mkdir ~/.ssh
+          touch ~/.ssh/authorized_keys
+          touch ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" >> ~/.ssh/authorized_keys
+
+      - name: Open tunneling
+        run: |
+          ngrok tcp 22 &
+
+      - name: Get API link
+        run: "curl http://localhost:4040/api/tunnels"
+
+      - name: Keep session open
+        run: "tail -f /dev/null"
